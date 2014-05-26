@@ -22,6 +22,7 @@
 #include "vertexbase.hxx"
 #include "edgebase.hxx"
 #include "iterators.hxx"
+#include <boost/format.hpp>
 
 namespace pggraph {
 
@@ -31,9 +32,9 @@ class GraphBase
     PqIterator<Edge>* m_edges;
     PqIterator<Vertex>* m_vertices;
 
-
 public:
 
+    static boost::format outEdgeQueryFormat;
 
     GraphBase();
     GraphBase(PqIterator<Edge> eit, PqIterator<Vertex> vit);

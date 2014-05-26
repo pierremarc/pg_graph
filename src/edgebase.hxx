@@ -39,20 +39,26 @@ public:
     EdgeBase();
     EdgeBase(unsigned int tid, unsigned long eid,
              const Vertex& source, const Vertex& target);
+
     EdgeBase(const EdgeBase&);
+    EdgeBase& operator=(const EdgeBase&){ return *this;}
 
     static EdgeBase transform(const pqxx::result&);
 
     Vertex source() const;
     Vertex target() const;
 
-    bool operator==(const EdgeBase& other){
-        return (entityId = other.entityId);
+    bool operator==(const EdgeBase& other) const{
+        return (typeId == other.typeId)
+                && (entityId == other.entityId);
     }
 
-    bool operator!=(const EdgeBase& other){
-        return (entityId != other.entityId);
+    bool operator!=(const EdgeBase& other) const {
+        return !((*this) == other);
     }
+
+    unsigned int getType() const {return typeId;}
+    unsigned long getEntity() const {return entityId;}
 };
 
 

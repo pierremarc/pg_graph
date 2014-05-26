@@ -19,45 +19,108 @@
 #ifndef ITERATORS_HXX
 #define ITERATORS_HXX
 
+#include <iostream>
 #include <string>
+#include <exception>
 #include <map>
+#include <memory>
 #include <pqxx/pqxx>
 #include <boost/iterator/iterator_adaptor.hpp>
+#include <boost/random.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/functional/hash.hpp>
+
 namespace pggraph {
 
 typedef unsigned long difference_type;
-
-
 typedef pqxx::stateless_cursor<pqxx::cursor_base::read_only, pqxx::cursor_base::owned> ReadCursor;
-//class OwnedReadCursor : public OwnedReadCursorBase
-//{
-//    pqxx::connection_base& m_conn;
-//    const std::string m_query;
-//    const std::string m_cname;
-//    bool m_hold;
 
-//public:
-//    OwnedReadCursor(pqxx::transaction_base &trans,
-//                    const std::string &query,
-//                    const std::string &cname,
-//                    bool hold)
-//        :OwnedReadCursorBase(trans, query, cname, hold),
-//          m_conn((trans.conn())),
-//          m_query(query),
-//          m_cname(cname),
-//          m_hold(hold)
-//    {
-//    }
 
-//    explicit OwnedReadCursor(const OwnedReadCursor& o)
-//        :OwnedReadCursorBase(&(pqxx::read_transaction(o.m_conn)), o.m_query, o.m_cname, o.m_hold),
-//          m_conn(o.m_conn),
-//          m_query(o.m_query),
-//          m_cname(o.m_cname),
-//          m_hold(o.m_hold)
-//    {
-//    }
-//};
+
+class ConnectionCreatedException : public std::exception
+{
+    virtual const char* what() const noexcept
+    {
+        return "CursorProvider already created";
+    }
+};
+
+
+class ConnectionNotCreatedException : public std::exception
+{
+    virtual const char* what() const noexcept
+    {
+        return "CursorProvider must be created before being used and abused";
+    }
+};
+
+typedef std::shared_ptr<pqxx::work> TransactionPtr;
+typedef std::shared_ptr<ReadCursor> CursorPtr;
+typedef std::shared_ptr<pqxx::connection> ConnectionPtr;
+
+class CursorHolder
+{
+    CursorPtr cursor;
+
+protected:
+    static boost::uuids::random_generator tgenerator;
+    static boost::hash<boost::uuids::uuid> tuuid_hasher;
+
+
+    std::string rname(){
+        boost::uuids::uuid u(tgenerator());
+        std::size_t uhv = tuuid_hasher(u);
+        return boost::lexical_cast<std::string>(uhv);
+    }
+
+public:
+    CursorHolder(){}
+
+    CursorHolder(TransactionPtr& w, const std::string& query){
+        std::string n(rname());
+        std::cout << "CursorHolder ["<<n<<"]"<<std::endl;
+        cursor = CursorPtr(new ReadCursor((*w), query, n, false));
+
+    }
+
+    //    ~CursorHolder(){
+    //        if(cursor){
+    //            cursor->close();
+    //        }
+    //        if(work){
+    //            work->abort();
+    //        }
+    //    }
+
+    ReadCursor& operator()(){
+        return *cursor;
+    }
+};
+
+//typedef std::map<std::string, CursorHolder> CMap;
+
+class CursorProvider
+{
+public:
+    static void create(const std::string& dn);
+    static CursorProvider& getInstance();
+    static CursorHolder getCursor(const std::string& query);
+
+protected:
+
+private:
+    static CursorProvider *instance;
+
+    CursorProvider(const std::string& dn){
+        m_conn = ConnectionPtr(new pqxx::connection(dn));
+        m_work = TransactionPtr(new pqxx::work(*m_conn));
+    }
+
+    ConnectionPtr m_conn;
+    TransactionPtr m_work;
+
+};
 
 template <class V>
 class PqIterator : public boost::iterator_adaptor<
@@ -69,51 +132,51 @@ class PqIterator : public boost::iterator_adaptor<
 {
 
 public:
-    //    PqIterator(){}
+    PqIterator(){}
 
     PqIterator(const PqIterator& other)
-        :m_conn(other.m_conn),
-          m_query(other.m_query),
+        :m_query(other.m_query),
           m_pos(other.m_pos),
+          m_maxPos(other.m_maxPos),
           m_node(other.m_node)
     {
-        m_trans = pqxx::read_transaction(m_conn);
-        std::string n();
-        m_cursor = ReadCursor(m_trans, m_query, n, false);
-
+        m_cursor = CursorProvider::getCursor(m_query);
     }
 
-    explicit PqIterator(pqxx::connection& conn, const std::string& query)
-        :m_conn(conn),
-          m_pos(0),
+    PqIterator& operator=(const PqIterator& rhs)
+    {
+        return *this;
+    }
+
+    explicit PqIterator(const std::string& query)
+        :m_pos(0),
           m_query(query)
     {
-        m_trans = pqxx::read_transaction(m_conn);
-        std::string n();
-        m_cursor = ReadCursor(m_trans, m_query, n, false);
+        m_cursor = CursorProvider::getCursor(m_query);
+        m_maxPos = m_cursor().size();
     }
 
-    ~PqIterator(){
-        if(m_begin){delete m_begin;}
-        if(m_end){delete m_end;}
+    PqIterator begin() const
+    {
+        return PqIterator(m_query);
     }
 
-    const PqIterator& begin(){
-        if(!m_begin){
-            m_begin = new PqIterator(*this);
-            m_begin->m_pos = 0;
-            V::transform(m_begin->m_cursor.retrieve(0, 1));
-        }
-        return *m_begin;
+    PqIterator end() const
+    {
+        PqIterator<V> e(m_query);
+        e.moveAt(m_maxPos);
+        return e;
     }
 
-    const PqIterator& end(){
-        if(!m_end){
-            m_end = new PqIterator(*this);
-            m_end->m_pos = m_maxPos;
-            V::transform(m_end->m_cursor.retrieve(m_maxPos, m_maxPos+1));
-        }
-        return *m_end;
+    PqIterator moveAt(unsigned long p)
+    {
+        m_pos = p;
+        m_node = V::transform(m_cursor().retrieve(m_maxPos, m_maxPos+1));
+    }
+
+    unsigned long getPos() const
+    {
+        return m_pos;
     }
 
 
@@ -122,17 +185,17 @@ private:
     friend class boost::iterator_core_access;
 
     template <class OtherValue>
-    bool equal(PqIterator<OtherValue> const& other){
-        return this->m_pos == other.m_pos;
+    bool equal(PqIterator<OtherValue> const& other) const {
+        return m_pos == other.m_pos;
     }
 
     void increment(){
-        m_node = this->value_type.transform(m_cursor.retrieve(m_pos, m_pos+1));
+        m_node = V::transform(m_cursor().retrieve(m_pos, m_pos+1));
         m_pos += 1;
     }
 
     void decrement(){
-        m_node = this->value_type.transform(m_cursor.retrieve(m_pos -1, m_pos));
+        m_node = V::transform(m_cursor().retrieve(m_pos -1, m_pos));
         m_pos -= 1;
     }
 
@@ -140,40 +203,14 @@ private:
     //        difference_type advance(difference_type z);
     //        difference_type distance_to(difference_type z);
 
-    pqxx::connection &m_conn;
-    pqxx::read_transaction m_trans;
     const std::string m_query;
-    ReadCursor m_cursor;
+    CursorHolder m_cursor;
     unsigned long  m_pos;
     unsigned long  m_maxPos;
     V m_node;
-    PqIterator<V>* m_end;
-    PqIterator<V>* m_begin;
+    //    PqIterator<V> m_end;
+    //    PqIterator<V> m_begin;
 };
-
-
-
-
-template<class V>
-class ResultSet
-{
-    typedef PqIterator<V> iterType;
-    pqxx::work m_w;
-    const std::string m_query;
-
-public:
-    ResultSet(pqxx::connection& c, const std::string& query);
-
-
-    PqIterator<V> getIter(){
-        return iterType(OwnedReadCursor(m_w, m_query));
-    }
-
-};
-
-
-
-
 
 
 

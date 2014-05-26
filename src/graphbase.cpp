@@ -20,6 +20,9 @@
 
 namespace pggraph {
 
+boost::format
+GraphBase::outEdgeQueryFormat = boost::format("SELECT * FROM madein_connection WHERE content_type_left_id = %1% AND object_id_left = %2%");
+
 GraphBase::GraphBase()
 {
 }

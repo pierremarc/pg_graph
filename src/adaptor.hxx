@@ -44,11 +44,13 @@ struct graph_traits< pggraph::GraphBase >
     typedef pggraph::Vertex vertex_descriptor;
     typedef pggraph::Edge edge_descriptor;
     typedef pggraph::PqIterator<pggraph::Edge>  out_edge_iterator;
+    typedef pggraph::PqIterator<pggraph::Vertex>  vertex_iterator;
 };
 
 
 typedef graph_traits< pggraph::GraphBase > PqGraph;
 
+std::string edgesQueryString(unsigned int tid, unsigned long eid);
 
 inline std::pair<
     typename PqGraph::out_edge_iterator,
@@ -57,24 +59,30 @@ out_edges(
         PqGraph::vertex_descriptor u,
         const pggraph::GraphBase& g)
 {
-    return std::make_pair(g.edgeIter().begin(), g.edgeIter().end());
+    PqGraph::out_edge_iterator iter(edgesQueryString(u.getType(), u.getEntity()));
+    return std::make_pair(iter, iter.end());
 }
 
-PqGraph::vertex_descriptor
-source(
-        PqGraph::edge_descriptor e,
-        const pggraph::GraphBase& /*g*/)
+inline std::pair<
+    typename PqGraph::vertex_iterator,
+    typename PqGraph::vertex_iterator >
+vertices(const pggraph::GraphBase& g)
 {
-    return e.source();
+    PqGraph::vertex_iterator iter(g.vertexIter());
+    return std::make_pair(iter, iter.end());
 }
 
-PqGraph::vertex_descriptor
-target(
-        PqGraph::edge_descriptor e,
-        const pggraph::GraphBase& /*g*/)
-{
-    return e.target();
-}
+typename PqGraph::vertices_size_type
+num_vertices(const pggraph::GraphBase& g);
+
+typename PqGraph::vertex_descriptor
+source(PqGraph::edge_descriptor e, const pggraph::GraphBase& /*g*/);
+
+typename PqGraph::vertex_descriptor
+target(PqGraph::edge_descriptor e, const pggraph::GraphBase& /*g*/);
+
+typename PqGraph::degree_size_type
+out_degree(PqGraph::vertex_descriptor u, const pggraph::GraphBase& g);
 
 
 

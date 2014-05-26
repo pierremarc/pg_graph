@@ -23,20 +23,17 @@
 
 int main(int, char*[])
 {
-    pqxx::connection c("host=127.0.0.1 user=pierre password=plokplok dbname=geo0");
-    pqxx::work w(c);
+    std::string dn("host=127.0.0.1 user=pierre password=plokplok dbname=geo0");
 
+    pggraph::CursorProvider::create(dn);
 
     std::string edgesQuery("SELECT * from madein_connection;");
     std::string verticesQuery("select distinct on (content_type_left_id, object_id_left) * from madein_connection  ORDER BY content_type_left_id, object_id_left;");
 
-    std::string n1("orce");
-    std::string n2("orcv");
+    pggraph::PqIterator<pggraph::Edge> edgeIter(edgesQuery);
+    pggraph::PqIterator<pggraph::Vertex> vertexIter(verticesQuery);
 
-    pggraph::OwnedReadCursor edgesCursor(w, edgesQuery, n1, false);
-    pggraph::OwnedReadCursor verticesCursor(w, verticesQuery, n2, false);
-    pggraph::PqIterator<pggraph::Edge> edgeIter(edgesCursor, 1000);
-    pggraph::PqIterator<pggraph::Vertex> vertexIter(verticesCursor, 1000);
+
     pggraph::GraphBase g(edgeIter, vertexIter);
     std::cout << "Hello Graph!" << std::endl;
     return 0;

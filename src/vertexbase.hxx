@@ -36,6 +36,7 @@ public:
     VertexBase();
     VertexBase(unsigned int tid, unsigned long eid);
     VertexBase(const VertexBase&);
+    VertexBase& operator=(const VertexBase&){ return *this;}
 
     static VertexBase transform(const pqxx::result&, vertex_transform_side vts = TRANSFORM_SOURCE);
 
@@ -47,6 +48,9 @@ public:
     bool operator!=(const VertexBase& other){
         return !((*this) == other);
     }
+
+    unsigned int getType() const {return typeId;}
+    unsigned long getEntity() const {return entityId;}
 };
 
 typedef VertexBase Vertex;

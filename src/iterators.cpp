@@ -22,6 +22,37 @@
 namespace pggraph {
 
 
+boost::uuids::random_generator CursorHolder::tgenerator;
+boost::hash<boost::uuids::uuid> CursorHolder::tuuid_hasher;
+
+CursorProvider *CursorProvider::instance = 0;
+
+void
+CursorProvider::create(const std::string &dn)
+{
+    if(!instance){
+        instance = new CursorProvider(dn);
+    }
+    else{
+        throw ConnectionCreatedException();
+    }
+}
+
+CursorProvider&
+CursorProvider::getInstance()
+{
+    if(!instance){
+        throw ConnectionNotCreatedException();
+    }
+    return *instance;
+}
+
+CursorHolder
+CursorProvider::getCursor(const std::string& query)
+{
+    return CursorHolder(getInstance().m_work, query);
+}
+
 
 } // namespace pggraph
 
