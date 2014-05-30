@@ -37,7 +37,7 @@ VertexBase::VertexBase(unsigned int tid, unsigned long eid)
 VertexBase::VertexBase(const VertexBase& other)
 {
     typeId = other.typeId;
-    entityId = other.typeId;
+    entityId = other.entityId;
 }
 
 

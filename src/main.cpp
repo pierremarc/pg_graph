@@ -20,8 +20,12 @@
 #include <iostream>
 
 #include "adaptor.hxx"
+#include "colormap.hxx"
 
-int main(int, char*[])
+#include <boost/graph/breadth_first_search.hpp>
+
+
+int main(int argc, char** argv)
 {
     std::string dn("host=127.0.0.1 user=pierre password=plokplok dbname=geo0");
 
@@ -33,8 +37,15 @@ int main(int, char*[])
     pggraph::PqIterator<pggraph::Edge> edgeIter(edgesQuery);
     pggraph::PqIterator<pggraph::Vertex> vertexIter(verticesQuery);
 
-
     pggraph::GraphBase g(edgeIter, vertexIter);
+
+    typedef pggraph::ColorMap<pggraph::Vertex, boost::default_color_type> VColorMap;
+    VColorMap cmap;
+
+    pggraph::Vertex v(19, 5550);
+    boost::breadth_first_visit(g, v, boost::color_map(cmap));
+
+
     std::cout << "Hello Graph!" << std::endl;
     return 0;
 }

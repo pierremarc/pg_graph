@@ -35,6 +35,7 @@ struct graph_traits< pggraph::GraphBase >
     typedef directed_tag directed_category;
     typedef allow_parallel_edge_tag edge_parallel_category;
     typedef incidence_graph_tag traversal_category;
+//    typedef vertex_list_graph_tag traversal_category;
 
     typedef unsigned long vertices_size_type;
     typedef unsigned long edges_size_type;

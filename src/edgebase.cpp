@@ -15,8 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include <iostream>
 #include "edgebase.hxx"
+
 
 namespace pggraph {
 
@@ -37,7 +38,7 @@ EdgeBase::EdgeBase(unsigned int tid, unsigned long eid,
 EdgeBase::EdgeBase(const EdgeBase& other)
 {
     typeId = other.typeId;
-    entityId = other.typeId;
+    entityId = other.entityId;
     m_source = other.source();
     m_target = other.target();
 }
@@ -51,9 +52,14 @@ Vertex EdgeBase::target() const{
 }
 
 EdgeBase EdgeBase::transform(const pqxx::result& res){
-    Vertex s = Vertex::transform(res);
-    Vertex t = Vertex::transform(res, Vertex::TRANSFORM_TARGET);
-    return EdgeBase(res[0][1].as(dui), res[0][0].as(dul), s, t);
+    if(res.size() > 0)
+    {
+        Vertex s = Vertex::transform(res);
+        Vertex t = Vertex::transform(res, Vertex::TRANSFORM_TARGET);
+        return EdgeBase(res[0][1].as(dui), res[0][0].as(dul), s, t);
+    }
+    std::cerr << "[EdgeBase::transform] failed: " << res.query() <<std::endl;
+    return EdgeBase();
 }
 
 } // namespace pggraph

@@ -1,5 +1,5 @@
-/*
- *  Copyright (C)  2014  Pierre Marchand <pierremarc07@gmail.com>
+/**************************************************************************
+ *  Copyright (C) 2014  Pierre Marchand <pierremarc07@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU  General Public License as
@@ -13,24 +13,19 @@
  *
  *  You should have received a copy of the GNU  General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ *
+ *
+**************************************************************************/
 
-
-#include "graphbase.hxx"
+#include "colormap.hxx"
 
 namespace pggraph {
 
-boost::format
-GraphBase::outEdgeQueryFormat = boost::format("SELECT * FROM madein_connection WHERE content_type_left_id = %1% AND object_id_left = %2% ;");
+//template<typename T, typename CV>
+//CV ColorMap<T, CV>::default_value = boost::color_traits<CV>::white();
 
-GraphBase::GraphBase()
-{
-}
-
-GraphBase::GraphBase(PqIterator<Edge> eit, PqIterator<Vertex> vit)
-    :m_edges(&eit), m_vertices(&vit)
-{
 
 }
 
-} // namespace pggraph
+
+

@@ -79,7 +79,7 @@ public:
 
     CursorHolder(TransactionPtr& w, const std::string& query){
         std::string n(rname());
-        std::cout << "CursorHolder ["<<n<<"]"<<std::endl;
+        std::cout << "CursorHolder ["<<n<<"] '"<< query << "'" <<std::endl;
         cursor = CursorPtr(new ReadCursor((*w), query, n, false));
 
     }
@@ -153,7 +153,7 @@ public:
           m_query(query)
     {
         m_cursor = CursorProvider::getCursor(m_query);
-        m_maxPos = m_cursor().size();
+        m_maxPos = m_cursor().size() - 1;
     }
 
     PqIterator begin() const
@@ -171,7 +171,7 @@ public:
     PqIterator moveAt(unsigned long p)
     {
         m_pos = p;
-        m_node = V::transform(m_cursor().retrieve(m_maxPos, m_maxPos+1));
+        m_node = V::transform(m_cursor().retrieve(p, p+1));
     }
 
     unsigned long getPos() const
