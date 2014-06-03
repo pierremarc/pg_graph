@@ -25,6 +25,7 @@
 #include <map>
 #include <memory>
 #include <pqxx/pqxx>
+#include <boost/utility.hpp>
 #include <boost/iterator/iterator_adaptor.hpp>
 #include <boost/random.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -59,9 +60,10 @@ typedef std::shared_ptr<pqxx::work> TransactionPtr;
 typedef std::shared_ptr<ReadCursor> CursorPtr;
 typedef std::shared_ptr<pqxx::connection> ConnectionPtr;
 
-class CursorHolder
+class CursorHolder : boost::noncopyable
 {
     CursorPtr cursor;
+
 
 protected:
     static boost::uuids::random_generator tgenerator;
@@ -75,23 +77,37 @@ protected:
     }
 
 public:
-    CursorHolder(){}
+    CursorHolder(){
+        std::cerr << "CursorHolder() @"<<this  <<std::endl;
+    }
+
+    ~CursorHolder(){
+        std::cerr << "~CursorHolder @"<<this <<std::endl;
+    }
 
     CursorHolder(TransactionPtr& w, const std::string& query){
         std::string n(rname());
-        std::cout << "CursorHolder ["<<n<<"] '"<< query << "'" <<std::endl;
+        std::cerr << "CursorHolder @"<<this <<" : '"<< query << "'" <<std::endl;
         cursor = CursorPtr(new ReadCursor((*w), query, n, false));
 
     }
 
-    //    ~CursorHolder(){
-    //        if(cursor){
-    //            cursor->close();
-    //        }
-    //        if(work){
-    //            work->abort();
-    //        }
-    //    }
+    CursorHolder(const CursorHolder& o)
+        :cursor(o.cursor)
+    {
+        std::cerr << "CursorHolder(@"<< &o <<") @"<<this <<std::endl;
+    }
+
+    CursorHolder& operator=(const CursorHolder& o)
+    {
+        std::cerr << "CursorHolder@"<< this <<" = @"<< &o <<std::endl;
+        cursor = o.cursor;
+        return *this;
+    }
+
+//    ~CursorHolder(){
+//        std::cerr << "~CursorHolder @"<<this <<std::endl;
+//    }
 
     ReadCursor& operator()(){
         return *cursor;
@@ -132,7 +148,9 @@ class PqIterator : public boost::iterator_adaptor<
 {
 
 public:
-    PqIterator(){}
+    PqIterator(){
+        std::cerr << "PqIterator() @"<< &m_cursor <<std::endl;
+    }
 
     PqIterator(const PqIterator& other)
         :m_query(other.m_query),
@@ -164,14 +182,14 @@ public:
     PqIterator end() const
     {
         PqIterator<V> e(m_query);
-        e.moveAt(m_maxPos);
-        return e;
+        return e.moveAt(m_maxPos);
     }
 
-    PqIterator moveAt(unsigned long p)
+    PqIterator& moveAt(unsigned long p)
     {
         m_pos = p;
         m_node = V::transform(m_cursor().retrieve(p, p+1));
+        return *this;
     }
 
     unsigned long getPos() const

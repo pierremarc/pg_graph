@@ -50,7 +50,9 @@ CursorProvider::getInstance()
 CursorHolder
 CursorProvider::getCursor(const std::string& query)
 {
-    return CursorHolder(getInstance().m_work, query);
+     const CursorHolder c(getInstance().m_work, query);
+     std::cerr << "CursorProvider::getCursor <= @"<< &c << std::endl;
+     return c;
 }
 
 
